@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'topic_joint = omx_commander.topic_joint:main',
+            'servo = omx_commander.servo:main',
         ],
     },
 )
