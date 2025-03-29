@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'topic_joint = omx_commander.topic_joint:main',
         ],
     },
 )
