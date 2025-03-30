@@ -1,12 +1,15 @@
+import time
+import threading
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
 from rclpy.duration import Duration
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from control_msgs.action import GripperCommand
-import time
-import threading
 from omx_commander.kbhit import KBHit
+
+GRIPPER_MIN = -0.010
+GRIPPER_MAX = 0.019
 
 
 # OMX用のトピックへ指令をパブリッシュするノード
@@ -43,35 +46,39 @@ class Commander(Node):
         goal_msg.command.max_effort = 10.0
         self.gripper_client.wait_for_server()
         return self.gripper_client.send_goal(goal_msg)
+    def move_initial(self):
+        joint = [0.0, 0.0, 0.0, 0.0]
+        dt = 5
+        self.publish_joint(joint, dt)
+        self.send_gripper_command(GRIPPER_MIN)
+
+    def move_final(self):
+        joint = [0.00, 0.85, 0.43, -1.23]  # 手先を下ろした姿勢
+        dt = 5
+        self.publish_joint(joint, dt)
+        self.send_gripper_command(GRIPPER_MAX)
 
 def main():
     # ROSクライアントの初期化
     rclpy.init()
-
     # ノードクラスのインスタンス
     commander = Commander()
-
     # 別のスレッドでrclpy.spin()を実行する
     thread = threading.Thread(target=rclpy.spin, args=(commander,))
     threading.excepthook = lambda x: ()
     thread.start()
-
-    # 最初の指令をパブリッシュする前に少し待つ
-    time.sleep(1.0)
-
     # 初期ポーズへゆっくり移動させる
-    joint = [0.0, 0.0, 0.0, 0.0]
-    gripper = 0
-    dt = 5
-    commander.publish_joint(joint, dt)
-    commander.send_gripper_command(gripper)
-    
+    commander.move_initial()
+   
     # キー読み取りクラスのインスタンス
     kb = KBHit()
 
     print('1, 2, 3, 4, 5, 6, 7, 8, 9, 0キーを押して関節を動かす')
     print('スペースキーを押して初期ポーズにする')
     print('Escキーを押して終了')
+
+    joint = [0.0, 0.0, 0.0, 0.0]
+    gripper = GRIPPER_MIN
 
     # Ctrl+CでエラーにならないようにKeyboardInterruptを捕まえる
     try:
@@ -134,10 +141,6 @@ def main():
     else:
         print('終了')
         # 終了ポーズへゆっくり移動させる
-        joint = [0.00, 0.85, 0.43, -1.23]
-        gripper = 0
-        dt = 5
-        commander.publish_joint(joint, dt)
-        commander.send_gripper_command(gripper)
+        commander.move_final()
 
     rclpy.try_shutdown()

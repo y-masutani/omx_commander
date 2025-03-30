@@ -1,3 +1,5 @@
+import time
+import threading
 import rclpy
 from rclpy.node import Node
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -5,13 +7,12 @@ from rclpy.executors import MultiThreadedExecutor
 from control_msgs.msg import JointJog
 from geometry_msgs.msg import Twist, TwistStamped
 from std_srvs.srv import Trigger
-import time
-import threading
-from omx_commander.kbhit import KBHit
 from pymoveit2 import MoveIt2, GripperInterface
+from omx_commander.kbhit import KBHit
 
 GRIPPER_MIN = -0.010
 GRIPPER_MAX = 0.019
+
 
 # OMX用のservo_nodeへ指令を送るノード
 class Commander(Node):
@@ -25,6 +26,7 @@ class Commander(Node):
             'joint4',
         ]
         callback_group = ReentrantCallbackGroup()
+
         self.moveit2 = MoveIt2(
             node=self,
             joint_names=self.joint_names,
@@ -35,6 +37,7 @@ class Commander(Node):
         )
         self.moveit2.max_velocity = 1.0
         self.moveit2.max_acceleration = 1.0
+
         gripper_joint_names = ['gripper_left_joint']
         self.gripper_interface = GripperInterface(
             node=self,
@@ -46,6 +49,7 @@ class Commander(Node):
         )
         self.gripper_interface.max_velocity = 1.0
         self.gripper_interface.max_acceleration = 1.0
+
         self.publisher_joint_jog = self.create_publisher(
             JointJog,
             'servo_node/delta_joint_cmds', 10)
@@ -85,6 +89,18 @@ class Commander(Node):
 
     def set_max_velocity(self, v):
         self.moveit2.max_velocity = float(v)
+
+    def move_initial(self):
+        joint = [0.0, 0.0, 0.0, 0.0]
+        self.set_max_velocity(0.2)
+        self.move_joint(joint)
+        self.move_gripper(GRIPPER_MIN)
+
+    def move_final(self):
+        joint = [0.00, 0.85, 0.43, -1.23]  # 手先を下ろした姿勢 
+        self.set_max_velocity(0.2)
+        self.move_joint(joint)
+        self.move_gripper(GRIPPER_MAX)
     
     def start_moveit_servo(self):
         while not self.client_start_servo.wait_for_service(timeout_sec=1.0):
@@ -112,29 +128,19 @@ class Commander(Node):
 def main():
     # ROSクライアントの初期化
     rclpy.init()
-
     # ノードクラスのインスタンス
     commander = Commander()
-
     # 別のスレッドでrclpy.spin()を実行する
     executor = MultiThreadedExecutor()
     thread = threading.Thread(target=rclpy.spin, args=(commander,executor,))
     threading.excepthook = lambda x: ()
     thread.start()
-
-    # 最初の指令をパブリッシュする前に少し待つ
-    time.sleep(1.0)
-
     # 初期ポーズへゆっくり移動させる
-    joint = [0.0, 0.0, 0.0, 0.0]
-    commander.set_max_velocity(0.2)
-    commander.move_joint(joint)
- 
+    commander.move_initial()
     # 障害物の追加
     commander.add_collision()
-
+    # キー読み取りクラスのインスタンス
     kb = KBHit()
-
     # サーボの機能を有効化
     commander.start_moveit_servo()
 
@@ -148,7 +154,7 @@ def main():
     print('Escキーを押して終了')
 
     frame_id = 'link1'
-    gripper = 0.0
+    gripper = GRIPPER_MIN
 
     # Ctrl+CでエラーにならないようにKeyboardInterruptを捕まえる
     try:
@@ -229,10 +235,9 @@ def main():
         print('終了')
         # サーボの機能を無効化
         commander.stop_moveit_servo()
+        # 障害物の削除
+        commander.remove_collision()
         # 終了ポーズへゆっくり移動させる
-        joint = [0.00, 0.85, 0.43, -1.23]
-        gripper = 0
-        commander.set_max_velocity(0.2)
-        commander.move_joint(joint)
+        commander.move_final()
 
     rclpy.try_shutdown()

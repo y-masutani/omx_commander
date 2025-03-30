@@ -17,6 +17,7 @@ from omx_commander.kbhit import KBHit
 GRIPPER_MIN = -0.010
 GRIPPER_MAX = 0.019
 
+
 # OMX用のMoveItで逆運動学を計算しtfのフレームで与えられた点へ手先を位置決めするノード
 class Commander(Node):
 
@@ -75,7 +76,7 @@ class Commander(Node):
         joint = [0.0, 0.0, 0.0, 0.0]
         self.set_max_velocity(0.2)
         self.move_joint(joint)
-        self.move_gripper( GRIPPER_MIN)
+        self.move_gripper(GRIPPER_MIN)
 
     def move_final(self):
         joint = [0.00, 0.85, 0.43, -1.23]  # 手先を下ろした姿勢 
@@ -118,22 +119,17 @@ def dist(a, b):
 def main():
     # ROSクライアントの初期化
     rclpy.init()
-
     # ノードクラスのインスタンス
     commander = Commander()
-
     # 別のスレッドでrclpy.spin()を実行する
     executor = MultiThreadedExecutor()
     thread = threading.Thread(target=rclpy.spin, args=(commander,executor,))
     threading.excepthook = lambda x: ()
     thread.start()
-
     # 初期ポーズへゆっくり移動させる
     commander.move_initial()
-
     # キー読み取りクラスのインスタンス
     kb = KBHit()
-
     # 状態
     INIT = 0
     WAIT = 1

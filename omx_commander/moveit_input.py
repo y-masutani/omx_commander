@@ -1,13 +1,13 @@
+import threading
+from math import atan2
 import rclpy
 import rclpy.time
 from rclpy.node import Node
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
-import threading
+from tf_transformations import quaternion_from_euler
 from pymoveit2 import MoveIt2, GripperInterface
 import readline # input()に入力履歴・行編集の機能を追加するために必要
-from tf_transformations import quaternion_from_euler
-from math import atan2
 
 GRIPPER_MIN = -0.010
 GRIPPER_MAX = 0.019
@@ -65,17 +65,15 @@ class Commander(Node):
 
     def move_initial(self):
         joint = [0.0, 0.0, 0.0, 0.0]
-        gripper = GRIPPER_MIN
         self.set_max_velocity(0.2)
         self.move_joint(joint)
-        self.move_gripper(gripper)
+        self.move_gripper(GRIPPER_MIN)
 
     def move_final(self):
         joint = [0.00, 0.85, 0.43, -1.23]  # 手先を下ろした姿勢 
-        gripper = GRIPPER_MAX
         self.set_max_velocity(0.2)
         self.move_joint(joint)
-        self.move_gripper(gripper)
+        self.move_gripper(GRIPPER_MAX)
 
     def move_endtip(self, endtip):
         position = [float(endtip[0]), float(endtip[1]), float(endtip[2])]
@@ -103,16 +101,13 @@ def print_help():
 def main():
     # ROSクライアントの初期化
     rclpy.init()
-
     # ノードクラスのインスタンス
     commander = Commander()
-
     # 別のスレッドでrclpy.spin()を実行する
     executor = MultiThreadedExecutor()
     thread = threading.Thread(target=rclpy.spin, args=(commander,executor,))
     threading.excepthook = lambda x: ()
     thread.start()
-
     # 初期ポーズへゆっくり移動させる
     commander.move_initial()
 
