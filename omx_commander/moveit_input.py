@@ -5,7 +5,7 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 import threading
 from pymoveit2 import MoveIt2, GripperInterface
-import readline
+import readline # input()に入力履歴・行編集の機能を追加するために必要
 from tf_transformations import quaternion_from_euler
 from math import atan2
 
@@ -13,7 +13,7 @@ GRIPPER_MIN = -0.010
 GRIPPER_MAX = 0.019
 
 
-# OMX用のMoveItで関節を位置決めするノード
+# OMX用のMoveItで関節や手先を位置決めするノード
 class Commander(Node):
 
     def __init__(self):
@@ -71,7 +71,7 @@ class Commander(Node):
         self.move_gripper(gripper)
 
     def move_final(self):
-        joint = [0.00, 0.85, 0.43, -1.23]
+        joint = [0.00, 0.85, 0.43, -1.23]  # 手先を下ろした姿勢 
         gripper = GRIPPER_MAX
         self.set_max_velocity(0.2)
         self.move_joint(joint)
