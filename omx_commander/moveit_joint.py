@@ -122,7 +122,8 @@ def main():
                 except ValueError:
                     print('引数が数値として解釈できない')
                     continue
-                commander.move_joint(joint)
+                r = commander.move_joint(joint)
+                print(f'戻り値： {r}')
             elif word[0] == 'g':
                 if len(word) < 2:
                     print('引数が少なすぎる')
@@ -132,7 +133,8 @@ def main():
                 except ValueError:
                     print('引数が数値として解釈できない')
                     continue
-                commander.move_gripper(gripper)
+                r = commander.move_gripper(gripper)
+                print(f'戻り値： {r}')
             else:
                 print('コマンドとして解釈できない')
     except KeyboardInterrupt:
