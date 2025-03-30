@@ -22,7 +22,6 @@ setup(
         'console_scripts': [
             'topic_joint = omx_commander.topic_joint:main',
             'servo = omx_commander.servo:main',
-            'moveit_joint = omx_commander.moveit_joint:main',
             'moveit_input = omx_commander.moveit_input:main',
         ],
     },
