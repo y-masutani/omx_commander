@@ -46,6 +46,7 @@ class Commander(Node):
         goal_msg.command.max_effort = 10.0
         self.gripper_client.wait_for_server()
         return self.gripper_client.send_goal(goal_msg)
+
     def move_initial(self):
         joint = [0.0, 0.0, 0.0, 0.0]
         dt = 5
@@ -122,20 +123,16 @@ def main():
                 elif ord(c) == 27:  # Escキー
                     break
 
-                # 変化があればパブリッシュ
-                publish = False
+                # 変化があれば指令を送る
                 if joint != joint_prev:
                     print((f'joint: [{joint[0]:.2f}, {joint[1]:.2f}, '
                            f'{joint[2]:.2f}, {joint[3]:.2f}]'))
                     commander.publish_joint(joint, dt)
-                    publish = True
+                    time.sleep(dt)
                 if gripper != gripper_prev:
                     print(f'gripper: {gripper:.3f}')
                     commander.send_gripper_command(gripper)
-                    publish = True
-                # パブリッシュした場合は，設定時間と同じだけ停止
-                if publish:
-                    time.sleep(dt)
+                    
     except KeyboardInterrupt:
         thread.join()
     else:
