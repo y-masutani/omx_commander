@@ -2,16 +2,15 @@ import time
 import threading
 from math import sqrt, atan2
 import rclpy
-import rclpy.time
 from rclpy.node import Node
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
+from pymoveit2 import MoveIt2, GripperInterface
 from rclpy.duration import Duration
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from tf_transformations import euler_from_quaternion, quaternion_from_euler
-from pymoveit2 import MoveIt2, GripperInterface
 from omx_commander.kbhit import KBHit
 
 GRIPPER_MIN = -0.010
@@ -23,14 +22,14 @@ class Commander(Node):
 
     def __init__(self):
         super().__init__('commander')
+        callback_group = ReentrantCallbackGroup()
+
         self.joint_names = [
             'joint1',
             'joint2',
             'joint3',
             'joint4',
         ]
-        callback_group = ReentrantCallbackGroup()
-
         self.moveit2 = MoveIt2(
             node=self,
             joint_names=self.joint_names,

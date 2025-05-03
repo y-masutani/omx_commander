@@ -1,12 +1,11 @@
 import threading
 from math import atan2
 import rclpy
-import rclpy.time
 from rclpy.node import Node
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
-from tf_transformations import quaternion_from_euler
 from pymoveit2 import MoveIt2, GripperInterface
+from tf_transformations import quaternion_from_euler
 import readline # input()に入力履歴・行編集の機能を追加するために必要
 
 GRIPPER_MIN = -0.010
@@ -18,14 +17,14 @@ class Commander(Node):
 
     def __init__(self):
         super().__init__('commander')
+        callback_group = ReentrantCallbackGroup()
+
         self.joint_names = [
             'joint1',
             'joint2',
             'joint3',
             'joint4',
         ]
-        callback_group = ReentrantCallbackGroup()
-
         self.moveit2 = MoveIt2(
             node=self,
             joint_names=self.joint_names,
@@ -76,7 +75,8 @@ class Commander(Node):
         self.move_gripper(GRIPPER_MAX)
 
     def move_endtip(self, endtip):
-        position = [float(endtip[0]), float(endtip[1]), float(endtip[2])]
+        position = [
+            float(endtip[0]), float(endtip[1]), float(endtip[2])]
         yaw = atan2(position[1], position[0] - 0.012)
         pitch = float(endtip[3])
         quat_xyzw = quaternion_from_euler(0.0, pitch, yaw)
@@ -105,7 +105,8 @@ def main():
     commander = Commander()
     # 別のスレッドでrclpy.spin()を実行する
     executor = MultiThreadedExecutor()
-    thread = threading.Thread(target=rclpy.spin, args=(commander,executor,))
+    thread = threading.Thread(
+        target=rclpy.spin, args=(commander,executor,))
     threading.excepthook = lambda x: ()
     thread.start()
     # 初期ポーズへゆっくり移動させる

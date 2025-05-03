@@ -4,10 +4,10 @@ import rclpy
 from rclpy.node import Node
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
+from pymoveit2 import MoveIt2, GripperInterface
 from control_msgs.msg import JointJog
 from geometry_msgs.msg import Twist, TwistStamped
 from std_srvs.srv import Trigger
-from pymoveit2 import MoveIt2, GripperInterface
 from omx_commander.kbhit import KBHit
 
 GRIPPER_MIN = -0.010
@@ -19,14 +19,14 @@ class Commander(Node):
 
     def __init__(self):
         super().__init__('commander')
+        callback_group = ReentrantCallbackGroup()
+
         self.joint_names = [
             'joint1',
             'joint2',
             'joint3',
             'joint4',
         ]
-        callback_group = ReentrantCallbackGroup()
-
         self.moveit2 = MoveIt2(
             node=self,
             joint_names=self.joint_names,
@@ -61,21 +61,6 @@ class Commander(Node):
         self.client_stop_servo = self.create_client(
             Trigger, 'servo_node/stop_servo')
 
-    def publish_twist(self, frame_id, twist: Twist):
-        msg = TwistStamped()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = frame_id
-        msg.twist = twist
-        self.publisher_twist.publish(msg)
-
-    def publish_joint_jog(self, names, velocities):
-        msg = JointJog()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = 'link1'
-        msg.joint_names = names
-        msg.velocities = velocities
-        self.publisher_joint_jog.publish(msg)
-
     def move_joint(self, q):
         joint_positions = [
             float(q[0]), float(q[1]), float(q[2]), float(q[3])]
@@ -102,27 +87,47 @@ class Commander(Node):
         self.move_joint(joint)
         self.move_gripper(GRIPPER_MAX)
     
+    def add_collision(self):
+        self.moveit2.add_collision_box(
+            id='floor_top',
+            size=[1.0, 1.0, 0.002],
+            position=[0.0, 0.0, -0.001],
+            quat_xyzw=[0.0, 0.0, 0.0, 1.0])
+
+    def remove_collision(self):
+        self.moveit2.remove_collision_object('floor_top')
+
+    def publish_twist(self, frame_id, twist: Twist):
+        msg = TwistStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = frame_id
+        msg.twist = twist
+        self.publisher_twist.publish(msg)
+
+    def publish_joint_jog(self, names, velocities):
+        msg = JointJog()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = 'link1'
+        msg.joint_names = names
+        msg.velocities = velocities
+        self.publisher_joint_jog.publish(msg)
+
     def start_moveit_servo(self):
-        while not self.client_start_servo.wait_for_service(timeout_sec=1.0):
+        while not self.client_start_servo.wait_for_service(
+            timeout_sec=1.0):
             self.get_logger().info('サービス無効．待機中…')
         future = self.client_start_servo.call_async(Trigger.Request())
         rclpy.spin_until_future_complete(self, future)
         return future.result()
 
     def stop_moveit_servo(self):
-        while not self.client_stop_servo.wait_for_service(timeout_sec=1.0):
+        while not self.client_stop_servo.wait_for_service(
+            timeout_sec=1.0):
             self.get_logger().info('サービス無効．待機中…')
         future = self.client_stop_servo.call_async(Trigger.Request())
         rclpy.spin_until_future_complete(self, future)
         return future.result()
 
-    def add_collision(self):
-        self.moveit2.add_collision_box(
-            id='floor_top', size=[1.0, 1.0, 0.002],
-            position=[0.0, 0.0, -0.001], quat_xyzw=[0.0, 0.0, 0.0, 1.0])
-
-    def remove_collision(self):
-        self.moveit2.remove_collision_object('floor_top')
 
 
 def main():
