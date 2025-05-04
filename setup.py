@@ -21,7 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'topic_joint = omx_commander.topic_joint:main',
-            'servo = omx_commander.servo:main',
+            'moveit_servo = omx_commander.moveit_servo:main',
             'moveit_input = omx_commander.moveit_input:main',
             'moveit_tf = omx_commander.moveit_tf:main',
         ],

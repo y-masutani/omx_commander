@@ -97,13 +97,6 @@ class Commander(Node):
     def remove_collision(self):
         self.moveit2.remove_collision_object('floor_top')
 
-    def publish_twist(self, frame_id, twist: Twist):
-        msg = TwistStamped()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = frame_id
-        msg.twist = twist
-        self.publisher_twist.publish(msg)
-
     def publish_joint_jog(self, names, velocities):
         msg = JointJog()
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -111,6 +104,13 @@ class Commander(Node):
         msg.joint_names = names
         msg.velocities = velocities
         self.publisher_joint_jog.publish(msg)
+
+    def publish_twist(self, frame_id, twist: Twist):
+        msg = TwistStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = frame_id
+        msg.twist = twist
+        self.publisher_twist.publish(msg)
 
     def start_moveit_servo(self):
         while not self.client_start_servo.wait_for_service(
