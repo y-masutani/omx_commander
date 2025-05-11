@@ -125,7 +125,8 @@ def main():
 
                 # 変化があれば指令を送る
                 if joint != joint_prev:
-                    print((f'joint: [{joint[0]:.2f}, {joint[1]:.2f}, '
+                    print(('joint: '
+                           f'[{joint[0]:.2f}, {joint[1]:.2f}, '
                            f'{joint[2]:.2f}, {joint[3]:.2f}]'))
                     commander.publish_joint(joint, dt)
                     time.sleep(dt)
